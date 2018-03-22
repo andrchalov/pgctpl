@@ -16,6 +16,7 @@ AS $function$
 --
 DECLARE
   v_missing_vars text[];
+  v_unknown_vars text[];
 	v_template_body_vars text[];					 -- найденные в теле переменные шаблона
 	v_template_body_placeholders text[];	 -- найденные в теле системные плейсхолдеры
 	v_unknown_placeholders text[];
@@ -24,15 +25,26 @@ BEGIN
 
   SELECT array_agg(e)
     FROM (
-      select unnest(v_template_body_vars)
-      except
       select unnest(a_vars)
+      except
+      select unnest(v_template_body_vars)
     ) t (e)
     INTO v_missing_vars;
 
   IF array_length(v_missing_vars, 1) > 0 THEN
-    RETURN format('Missing vars "%L" in template definition',
-      array_to_string(v_missing_vars, ','));
+    RETURN 'Missing var: "'||array_to_string(v_missing_vars, ',')||'" in template body';
+  END IF;
+
+  SELECT array_agg(e)
+    FROM (
+      select unnest(v_template_body_vars)
+      except
+      select unnest(a_vars)
+    ) t (e)
+    INTO v_unknown_vars;
+
+  IF array_length(v_unknown_vars, 1) > 0 THEN
+    RETURN 'Unknown var: "'||array_to_string(v_unknown_vars, ',')||'" in template body';
   END IF;
 
  	v_template_body_placeholders = pgctpl.find_placeholders(a_body, '<@', '@>');

@@ -13,7 +13,7 @@ DECLARE
   v_footer json;
   v_template record;
   v_template_type_nm text;
-  v_vars text[] NOT NULL = '{}';
+  v_vars text[];
 BEGIN
   FOR v_func IN
     SELECT nspname||'.'||proname AS fullname, nspname, proname, prosrc
@@ -47,6 +47,8 @@ BEGIN
           )
           FROM json_array_elements(v_template.value->'vars')
           INTO v_vars;
+        ELSE
+          v_vars = '{}';
         END IF;
 
         INSERT INTO pgctpl.template (
