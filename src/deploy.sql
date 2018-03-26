@@ -14,8 +14,10 @@ COMMENT ON SCHEMA pgctpl IS 'Content templates';
 \ir pgctpl/init.sql
 \ir pgctpl/json_to_text_array.sql
 \ir pgctpl/parse_function_footer.sql
+\ir pgctpl/parse_function_header.sql
 \ir pgctpl/paste.sql
 \ir pgctpl/scan.sql
+\ir pgctpl/func.sql
 \ir pgctpl/template_type.sql
 \ir pgctpl/template.sql
 \ir pgctpl/validate.sql

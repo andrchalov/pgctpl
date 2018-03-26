@@ -11,6 +11,7 @@ AS $function$
 DECLARE
   v_func record;
   v_footer json;
+  v_title text;
   v_template record;
   v_template_type_nm text;
   v_vars text[];
@@ -24,6 +25,11 @@ BEGIN
     v_footer = pgctpl.parse_function_footer(v_func.prosrc);
 
     IF v_footer NOTNULL THEN
+      v_title = pgctpl.parse_function_header(v_func.prosrc);
+
+      INSERT INTO pgctpl.func (fn_scheme, fn_name, title)
+        VALUES (v_func.nspname, v_func.proname, v_title);
+
       FOR v_template IN
         SELECT key AS code, value FROM json_each(v_footer)
       LOOP
