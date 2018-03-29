@@ -24,12 +24,12 @@ BEGIN
     FOR v_template IN
       SELECT * FROM pgctpl.parse_function(v_func.prosrc)
     LOOP
-      INSERT INTO pgctpl.func (fn_scheme, fn_name, title)
+      INSERT INTO pgctpl.func (fn_schema, fn_name, title)
         VALUES (v_func.nspname, v_func.proname, v_title)
         ON CONFLICT ON CONSTRAINT func_pkey DO NOTHING;
 
       INSERT INTO pgctpl.template (
-          code, fn_scheme, fn_name, nm, descr, data, vars, template_type,
+          code, fn_schema, fn_name, nm, descr, data, vars, template_type,
           definition
         )
         VALUES (

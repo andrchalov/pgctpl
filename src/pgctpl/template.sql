@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------------
 CREATE TABLE pgctpl.template (
   code varchar(4) NOT NULL,
-  fn_scheme text NOT NULL,         -- function schema
+  fn_schema text NOT NULL,         -- function schema
   fn_name text NOT NULL,           -- function name
   nm text,
   descr text,
@@ -15,8 +15,8 @@ CREATE TABLE pgctpl.template (
   definition json NOT NULL,
   mo timestamp with time zone NOT NULL,
 	CONSTRAINT template_pkey PRIMARY KEY (code),
-  CONSTRAINT template_fkey0 FOREIGN KEY (fn_scheme, fn_name)
-    REFERENCES pgctpl.func (fn_scheme, fn_name)
+  CONSTRAINT template_fkey0 FOREIGN KEY (fn_schema, fn_name)
+    REFERENCES pgctpl.func (fn_schema, fn_name)
     MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT template_fkey1 FOREIGN KEY (template_type)
     REFERENCES pgctpl.template_type (nm)

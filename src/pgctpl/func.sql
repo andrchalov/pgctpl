@@ -4,12 +4,12 @@
 
 --------------------------------------------------------------------------------
 CREATE TABLE pgctpl.func (
-  fn_scheme text NOT NULL,         -- function schema
+  fn_schema text NOT NULL,         -- function schema
   fn_name text NOT NULL,           -- function name
   /* fullname text NOT NULL, */
   title text,
   mo timestamp with time zone NOT NULL,
-	CONSTRAINT func_pkey PRIMARY KEY (fn_scheme, fn_name)
+	CONSTRAINT func_pkey PRIMARY KEY (fn_schema, fn_name)
 );
 --------------------------------------------------------------------------------
 
