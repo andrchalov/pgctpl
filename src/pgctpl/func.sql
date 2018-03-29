@@ -33,7 +33,6 @@ CREATE CONSTRAINT TRIGGER t600a_constr
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- Deny to change table
-CREATE RULE u AS ON UPDATE TO pgctpl.func DO INSTEAD NOTHING;
+-- Deny delete from table
 CREATE RULE d AS ON DELETE TO pgctpl.func DO INSTEAD NOTHING;
 --------------------------------------------------------------------------------

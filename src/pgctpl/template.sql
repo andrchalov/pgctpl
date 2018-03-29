@@ -9,8 +9,8 @@ CREATE TABLE pgctpl.template (
   fn_name text NOT NULL,           -- function name
   nm text,
   descr text,
-	body text NOT NULL,
-	vars text[] NOT NULL,
+  data hstore NOT NULL,
+	vars hstore NOT NULL,
 	template_type text NOT NULL,
   definition json NOT NULL,
   mo timestamp with time zone NOT NULL,

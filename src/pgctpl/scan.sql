@@ -10,11 +10,8 @@ AS $function$
 --
 DECLARE
   v_func record;
-  v_footer json;
   v_title text;
   v_template record;
-  v_template_type_nm text;
-  v_vars text[];
 BEGIN
   FOR v_func IN
     SELECT nspname||'.'||proname AS fullname, nspname, proname, prosrc
@@ -22,58 +19,31 @@ BEGIN
       JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
       LEFT JOIN pg_catalog.pg_description d ON p.oid = d.objoid
   LOOP
-    v_footer = pgctpl.parse_function_footer(v_func.prosrc);
+    v_title = pgctpl.parse_function_header(v_func.prosrc);
 
-    IF v_footer NOTNULL THEN
-      v_title = pgctpl.parse_function_header(v_func.prosrc);
-
+    FOR v_template IN
+      SELECT * FROM pgctpl.parse_function(v_func.prosrc)
+    LOOP
       INSERT INTO pgctpl.func (fn_scheme, fn_name, title)
-        VALUES (v_func.nspname, v_func.proname, v_title);
+        VALUES (v_func.nspname, v_func.proname, v_title)
+        ON CONFLICT ON CONSTRAINT func_pkey DO NOTHING;
 
-      FOR v_template IN
-        SELECT key AS code, value FROM json_each(v_footer)
-      LOOP
-        SELECT nm
-          FROM pgctpl.template_type
-          WHERE nm = v_template.value->>'type'
-          INTO v_template_type_nm;
-        --
-        IF NOT found THEN
-          RAISE 'PGCTPL: template type "%" is not defined',
-            v_template.value->>'type';
-        END IF;
-
-        IF v_template.value->'vars' NOTNULL THEN
-          SELECT array_agg(
-            CASE json_typeof(value)
-              WHEN 'string' THEN value #>> '{}'
-              WHEN 'object' THEN value->>'name'
-              ELSE value::text
-            END
-          )
-          FROM json_array_elements(v_template.value->'vars')
-          INTO v_vars;
-        ELSE
-          v_vars = '{}';
-        END IF;
-
-        INSERT INTO pgctpl.template (
-            code, fn_scheme, fn_name, nm, descr, body, vars, template_type,
-            definition
-          )
-          VALUES (
-            v_template.code,
-            v_func.nspname,
-            v_func.proname,
-            v_template.value->>'name',
-            v_template.value->>'descr',
-            v_template.value->>'body',
-            v_vars,
-            v_template_type_nm,
-            v_template.value
-          );
-      END LOOP;
-    END IF;
+      INSERT INTO pgctpl.template (
+          code, fn_scheme, fn_name, nm, descr, data, vars, template_type,
+          definition
+        )
+        VALUES (
+          v_template.code,
+          v_func.nspname,
+          v_func.proname,
+          v_template.name,
+          v_template.descr,
+          v_template.data,
+          v_template.vars,
+          v_template.tp,
+          v_template.definition
+        );
+    END LOOP;
   END LOOP;
 END;
 $function$;
