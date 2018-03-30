@@ -49,14 +49,14 @@ BEGIN
   v_data = v_template.data;
 
   -- переданные переменные должны соответствовать переменным шаблона
-	IF akeys(a_vars) <> v_template.vars THEN
+	IF akeys(a_vars) <> akeys(v_template.vars) THEN
 		-- в аргументе a_vars что-то не так
 		-- сформируем понятную ошибку
 
   	-- найти, пропущенные в аргументе a_vars, обязательные переменные
   	SELECT COALESCE(array_agg(e), '{}')
 	    FROM (
-		  	SELECT unnest(v_template.vars)
+		  	SELECT unnest(akeys(v_template.vars))
 			  EXCEPT
 			  SELECT skeys(a_vars)
       ) t (e)
@@ -72,7 +72,7 @@ BEGIN
 	    FROM (
 			  SELECT skeys(a_vars)
 			  EXCEPT
-			  SELECT unnest(v_template.vars)
+			  SELECT unnest(akeys(v_template.vars))
       ) t (e)
 			INTO STRICT v_unknown_vars;
 
@@ -103,7 +103,7 @@ BEGIN
   -- непереопределенных блоков
   SELECT hstore(array_agg(t.key), array_agg(COALESCE(d.value, t.value)))
     FROM each(v_template.data) t
-    JOIN each(v_data) d ON t.key = d.key
+    LEFT JOIN each(v_data) d ON t.key = d.key
     INTO v_data;
 
   SELECT hstore(
