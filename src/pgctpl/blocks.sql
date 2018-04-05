@@ -3,7 +3,8 @@
 CREATE OR REPLACE FUNCTION pgctpl.blocks(
   a_code varchar(6),
   a_context text,
-  a_vars hstore DEFAULT ''::hstore
+  a_vars hstore DEFAULT ''::hstore,
+  a_custom_data hstore DEFAULT NULL
 )
   RETURNS hstore
   LANGUAGE plpgsql
@@ -46,7 +47,11 @@ BEGIN
     RAISE 'PGCTPL: template by code "%" not found', v_code;
   END IF;
 
-  v_data = v_template.data;
+  IF a_custom_data ISNULL THEN
+    v_data = v_template.data;
+  ELSE
+    v_data = a_custom_data;
+  END IF;
 
   -- переданные переменные должны соответствовать переменным шаблона
 	IF akeys(a_vars) <> akeys(v_template.vars) THEN
@@ -119,19 +124,18 @@ BEGIN
     FROM each(v_data)
     INTO v_result;
 
-  /* v_result = pgctpl.embed_placeholders(v_body, a_vars, '<\$', '\$>');
-  v_result = pgctpl.embed_placeholders(v_result, v_placeholders, '<@', '@>'); */
-
   RETURN v_result;
 END;
 $function$;
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION pgctpl.blocks(varchar(6),int,hstore DEFAULT '')
+CREATE OR REPLACE FUNCTION pgctpl.blocks(
+  varchar(6),int,hstore DEFAULT '',hstore DEFAULT NULL
+)
   RETURNS hstore
   LANGUAGE sql
 AS $function$
-SELECT pgctpl.blocks($1,$2::text,$3);
+SELECT pgctpl.blocks($1,$2::text,$3,$4);
 $function$;
 -------------------------------------------------------------------------------

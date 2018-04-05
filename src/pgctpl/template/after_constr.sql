@@ -8,12 +8,7 @@ DECLARE
   v_placeholders text[];
   v_validation_error text;
 BEGIN
-  SELECT placeholders
-    FROM pgctpl.template_type
-    WHERE nm = NEW.template_type
-    INTO STRICT v_placeholders;
-
-  v_validation_error = pgctpl.validate(NEW.data, akeys(NEW.vars), v_placeholders);
+  v_validation_error = pgctpl.validate(NEW.data, NEW);
 
   IF v_validation_error NOTNULL THEN
     RAISE 'PGCTPL: % in template "%"', v_validation_error, NEW.code;
