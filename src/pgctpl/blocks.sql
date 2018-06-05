@@ -106,7 +106,7 @@ BEGIN
 
   -- в результирующий v_data добавим значения по-умолчанию для
   -- непереопределенных блоков
-  SELECT hstore(array_agg(t.key), array_agg(COALESCE(d.value, t.value)))
+  SELECT hstore(array_agg(t.key), array_agg(COALESCE(NULLIF(trim(d.value), ''), t.value)))
     FROM each(v_template.data) t
     LEFT JOIN each(v_data) d ON t.key = d.key
     INTO v_data;
