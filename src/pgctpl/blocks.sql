@@ -2,7 +2,7 @@
 -------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION pgctpl.blocks(
   a_code varchar(6),
-  a_context text,
+  a_context text DEFAULT NULL,
   a_vars hstore DEFAULT ''::hstore,
   a_custom_data hstore DEFAULT NULL
 )
@@ -21,10 +21,6 @@ DECLARE
 BEGIN
   IF a_code ISNULL THEN
     PERFORM 'PGCTPL: code argument is not defined';
-  END IF;
-
-  IF a_context ISNULL THEN
-    PERFORM 'PGCTPL: context argument is not defined';
   END IF;
 
   IF a_vars ISNULL THEN

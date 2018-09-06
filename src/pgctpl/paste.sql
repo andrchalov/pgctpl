@@ -2,7 +2,7 @@
 -------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION pgctpl.paste(
   a_code varchar(6),
-  a_context text,
+  a_context text DEFAULT NULL,
   a_vars hstore DEFAULT ''::hstore,
   a_block text DEFAULT 'default'
 )

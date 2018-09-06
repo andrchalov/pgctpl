@@ -27,12 +27,17 @@ BEGIN
     LOOP
       SELECT nm
         FROM pgctpl.template_type
-        WHERE nm = v_template.value->>'type'
+        WHERE nm = COALESCE(v_template.value->>'type', 'default')
         INTO v_template_type_nm;
       --
       IF NOT found THEN
-        RAISE 'PGCTPL: template type "%" is not defined',
-          v_template.value->>'type';
+        IF v_template.value->>'type' ISNULL THEN
+          RAISE 'PGCTPL: template type for "%" is not specified and "default" template type is not defined',
+            v_template.code;
+        ELSE
+          RAISE 'PGCTPL: template type "%" is not defined',
+            v_template.value->>'type';
+        END IF;
       END IF;
 
       IF v_template.value->'vars' NOTNULL THEN
@@ -68,31 +73,37 @@ BEGIN
         v_vars = '';
       END IF;
 
-      CASE json_typeof(v_template.value->'body')
+
+      CASE json_typeof(v_template.value)
         WHEN 'string' THEN
-          v_body = hstore('default', v_template.value->>'body');
-        WHEN 'array' THEN
-          SELECT hstore(array_agg(key), array_agg(value))
-            FROM (
-              SELECT (json_each_text(a)).*
-                FROM json_array_elements(v_template.value->'body') a
-            ) AS foo
-            INTO v_body;
-        WHEN 'object' THEN
-          SELECT hstore(array_agg(key), array_agg(
-              CASE json_typeof(value)
-                WHEN 'string' THEN
-                  value #>> '{}'
-                WHEN 'object' THEN
-                  value->>'data'
-                ELSE
-                  value::text
-              END::text
-            ))
-            FROM json_each(v_template.value->'body')
-            INTO v_body;
+          v_body = hstore('default', v_template.value#>>'{}');
         ELSE
-          RAISE 'bug';
+          CASE json_typeof(v_template.value->'body')
+            WHEN 'string' THEN
+              v_body = hstore('default', v_template.value->>'body');
+            WHEN 'array' THEN
+              SELECT hstore(array_agg(key), array_agg(value))
+                FROM (
+                  SELECT (json_each_text(a)).*
+                    FROM json_array_elements(v_template.value->'body') a
+                ) AS foo
+                INTO v_body;
+            WHEN 'object' THEN
+              SELECT hstore(array_agg(key), array_agg(
+                  CASE json_typeof(value)
+                    WHEN 'string' THEN
+                      value #>> '{}'
+                    WHEN 'object' THEN
+                      value->>'data'
+                    ELSE
+                      value::text
+                  END::text
+                ))
+                FROM json_each(v_template.value->'body')
+                INTO v_body;
+            ELSE
+              RAISE 'bug';
+          END CASE;
       END CASE;
 
       RETURN QUERY
