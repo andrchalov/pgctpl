@@ -47,7 +47,7 @@ BEGIN
 
   FOR v_key, v_val IN SELECT * FROM each(a_body)
   LOOP
-    IF v_val <> '' AND NOT COALESCE((a_template.definition->'body'->v_key->>'ignore_missing_vars')::boolean, false)
+    IF NOT COALESCE((a_template.definition->'body'->v_key->>'ignore_missing_vars')::boolean, false)
     THEN
       SELECT array_agg(e)
         FROM (

@@ -24,3 +24,4 @@ COMMENT ON SCHEMA pgctpl IS 'Content templates';
 \ir pgctpl/scan.sql
 \ir pgctpl/blocks.sql
 \ir pgctpl/paste.sql
+\ir pgctpl/body_filler.sql

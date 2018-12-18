@@ -8,12 +8,12 @@ CREATE OR REPLACE FUNCTION pgctpl.parse_function(text)
     data hstore,
     vars hstore,
     tp text,
-    definition json
+    definition jsonb
   )
   LANGUAGE plpgsql
 AS $function$
 DECLARE
-  v_footer json;
+  v_footer jsonb;
   v_template record;
   v_template_type_nm text;
   v_vars hstore;
@@ -23,7 +23,7 @@ BEGIN
 
   IF v_footer NOTNULL THEN
     FOR v_template IN
-      SELECT key AS code, value FROM json_each(v_footer)
+      SELECT key::varchar(4) AS code, value FROM jsonb_each(v_footer)
     LOOP
       SELECT nm
         FROM pgctpl.template_type
@@ -41,30 +41,30 @@ BEGIN
       END IF;
 
       IF v_template.value->'vars' NOTNULL THEN
-        CASE json_typeof(v_template.value->'vars')
+        CASE jsonb_typeof(v_template.value->'vars')
           WHEN 'array' THEN
             SELECT hstore(
                     array_agg(array[
-                      CASE json_typeof(value)
+                      CASE jsonb_typeof(value)
                         WHEN 'string' THEN value #>> '{}'
                         WHEN 'object' THEN value->>'name'
                         ELSE value::text
                       END,
-                      CASE json_typeof(value)
+                      CASE jsonb_typeof(value)
                         WHEN 'string' THEN ''
                         WHEN 'object' THEN COALESCE(value->>'descr', '')
                         ELSE value::text
                       END]
                     )
                   )
-              FROM json_array_elements(v_template.value->'vars')
+              FROM jsonb_array_elements(v_template.value->'vars')
               INTO v_vars;
           WHEN 'object' THEN
             SELECT hstore(
                     array_agg(key),
                     array_agg(value)
                    )
-              FROM json_each_text(v_template.value->'vars')
+              FROM jsonb_each_text(v_template.value->'vars')
               INTO v_vars;
           ELSE
             RAISE 'PGCTPL: Unsupported vars format';
@@ -74,36 +74,49 @@ BEGIN
       END IF;
 
 
-      CASE json_typeof(v_template.value)
+      CASE jsonb_typeof(v_template.value)
         WHEN 'string' THEN
           v_body = hstore('default', v_template.value#>>'{}');
         ELSE
-          CASE json_typeof(v_template.value->'body')
-            WHEN 'string' THEN
-              v_body = hstore('default', v_template.value->>'body');
-            WHEN 'array' THEN
-              SELECT hstore(array_agg(key), array_agg(value))
-                FROM (
-                  SELECT (json_each_text(a)).*
-                    FROM json_array_elements(v_template.value->'body') a
-                ) AS foo
-                INTO v_body;
-            WHEN 'object' THEN
-              SELECT hstore(array_agg(key), array_agg(
-                  CASE json_typeof(value)
-                    WHEN 'string' THEN
-                      value #>> '{}'
-                    WHEN 'object' THEN
-                      value->>'data'
-                    ELSE
-                      value::text
-                  END::text
-                ))
-                FROM json_each(v_template.value->'body')
-                INTO v_body;
-            ELSE
-              RAISE 'bug';
-          END CASE;
+          IF v_template.value ? 'body' THEN
+            CASE jsonb_typeof(v_template.value->'body')
+              WHEN 'string' THEN
+                v_body = hstore('default', v_template.value->>'body');
+              WHEN 'array' THEN
+                SELECT hstore(array_agg(key), array_agg(value))
+                  FROM (
+                    SELECT (jsonb_each_text(a)).*
+                      FROM jsonb_array_elements(v_template.value->'body') a
+                  ) AS foo
+                  INTO v_body;
+              WHEN 'object' THEN
+                SELECT hstore(array_agg(key), array_agg(
+                    CASE jsonb_typeof(value)
+                      WHEN 'string' THEN
+                        value #>> '{}'
+                      WHEN 'object' THEN
+                        value->>'data'
+                      ELSE
+                        value::text
+                    END::text
+                  ))
+                  FROM jsonb_each(v_template.value->'body')
+                  INTO v_body;
+              ELSE
+                RAISE 'bug';
+            END CASE;
+
+            IF EXISTS(
+              SELECT FROM pgctpl_body_filler f WHERE f.code = v_template.code::varchar(4)
+            ) THEN
+              RAISE 'Duplicate template "%" body definition in "pgctpl_body_filler" and in function footer', v_template.code;
+            END IF;
+          ELSE
+            SELECT hstore(array_agg(block), array_agg(value))
+              FROM pgctpl_body_filler f
+              WHERE f.code = v_template.code::varchar(4)
+              INTO v_body;
+          END IF;
       END CASE;
 
       RETURN QUERY
