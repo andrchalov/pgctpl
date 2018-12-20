@@ -11,7 +11,7 @@ BEGIN
   v_validation_error = pgctpl.validate(NEW.data, NEW);
 
   IF v_validation_error NOTNULL THEN
-    RAISE 'PGCTPL: % in template "%"', v_validation_error, NEW.code;
+    RAISE 'PGCTPL: % in template `%`', v_validation_error, NEW.code;
   END IF;
 
   IF EXISTS(

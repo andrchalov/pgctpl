@@ -43,6 +43,12 @@ BEGIN
     RAISE 'PGCTPL: template by code "%" not found', v_code;
   END IF;
 
+  -- поиск типа шаблона
+  SELECT *
+    FROM pgctpl.template_type
+    WHERE nm = v_template.template_type
+    INTO STRICT v_template_type;
+
   IF a_custom_data ISNULL THEN
     v_data = v_template.data;
   ELSE
@@ -50,7 +56,7 @@ BEGIN
   END IF;
 
   -- переданные переменные должны соответствовать переменным шаблона
-	IF akeys(a_vars) <> akeys(v_template.vars) THEN
+	IF akeys(a_vars) <> akeys(v_template.vars || v_template_type.global_vars) THEN
 		-- в аргументе a_vars что-то не так
 		-- сформируем понятную ошибку
 
@@ -85,12 +91,6 @@ BEGIN
 		RAISE 'PGCTPL: bug in pgctpl.blocks()';
 	END IF;
 
-  -- поиск типа шаблона
-  SELECT *
-    FROM pgctpl.template_type
-    WHERE nm = v_template.template_type
-    INTO STRICT v_template_type;
-
   IF v_template_type.handler_func NOTNULL THEN
     EXECUTE format(
       $$
@@ -111,9 +111,9 @@ BEGIN
       array_agg(key),
       array_agg(
         pgctpl.embed_placeholders(
-          pgctpl.embed_placeholders(value, a_vars, '<\$', '\$>'),
+          pgctpl.embed_placeholders(value, a_vars, v_template_type.var_prefix, v_template_type.var_suffix),
           v_placeholders,
-          '<@', '@>'
+          v_template_type.placeholder_prefix, v_template_type.placeholder_suffix
         )
       )
     )

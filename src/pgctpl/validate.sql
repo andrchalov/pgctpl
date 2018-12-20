@@ -43,7 +43,7 @@ BEGIN
     FROM svals(a_body) v
     INTO STRICT v_merged_data;
 
- 	v_data_vars = pgctpl.find_placeholders(v_merged_data, '<\$', '\$>');
+ 	v_data_vars = pgctpl.find_placeholders(v_merged_data, v_template_type.var_prefix, v_template_type.var_suffix);
 
   FOR v_key, v_val IN SELECT * FROM each(a_body)
   LOOP
@@ -51,14 +51,14 @@ BEGIN
     THEN
       SELECT array_agg(e)
         FROM (
-          select skeys(a_template.vars)
-          except
-          select unnest(pgctpl.find_placeholders(v_val, '<\$', '\$>'))
+          SELECT skeys(a_template.vars || v_template_type.global_vars)
+          EXCEPT
+          SELECT unnest(pgctpl.find_placeholders(v_val, v_template_type.var_prefix, v_template_type.var_suffix))
         ) t (e)
         INTO v_missing_vars;
 
       IF array_length(v_missing_vars, 1) > 0 THEN
-        RETURN 'Missing var: "'||array_to_string(v_missing_vars, ',')||'" in body block "'||v_key||'"';
+        RETURN 'Missing var'||CASE WHEN array_length(v_missing_vars, 1) > 1 THEN 's' ELSE '' END||': '||array_to_string(v_missing_vars, ',')||' in body block `'||v_key||'`';
       END IF;
     END IF;
   END LOOP;
@@ -67,7 +67,7 @@ BEGIN
     FROM (
       select unnest(v_data_vars)
       except
-      select skeys(a_template.vars)
+      select skeys(a_template.vars || v_template_type.global_vars)
     ) t (e)
     INTO v_unknown_vars;
 
@@ -75,7 +75,11 @@ BEGIN
     RETURN 'Unknown var: "'||array_to_string(v_unknown_vars, ',')||'" in template body';
   END IF;
 
- 	v_data_placeholders = pgctpl.find_placeholders(v_merged_data, '<@', '@>');
+ 	v_data_placeholders = pgctpl.find_placeholders(
+    v_merged_data,
+    v_template_type.placeholder_prefix,
+    v_template_type.placeholder_suffix
+  );
 
 	SELECT array_agg(e) INTO v_unknown_placeholders
 	  FROM (

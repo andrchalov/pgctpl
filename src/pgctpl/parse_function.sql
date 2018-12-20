@@ -73,6 +73,7 @@ BEGIN
         v_vars = '';
       END IF;
 
+      v_body = ''::hstore;
 
       CASE jsonb_typeof(v_template.value)
         WHEN 'string' THEN
@@ -97,7 +98,7 @@ BEGIN
                       WHEN 'object' THEN
                         value->>'data'
                       ELSE
-                        value::text
+                        value #>> '{}'
                     END::text
                   ))
                   FROM jsonb_each(v_template.value->'body')
@@ -105,23 +106,52 @@ BEGIN
               ELSE
                 RAISE 'bug';
             END CASE;
-
-            IF EXISTS(
-              SELECT FROM pgctpl_body_filler f WHERE f.code = v_template.code::varchar(4)
-            ) THEN
-              RAISE 'Duplicate template "%" body definition in "pgctpl_body_filler" and in function footer', v_template.code;
-            END IF;
           ELSE
-            SELECT hstore(array_agg(block), array_agg(value))
-              FROM pgctpl_body_filler f
-              WHERE f.code = v_template.code::varchar(4)
-              INTO v_body;
+            v_body = hstore('default', null);
           END IF;
       END CASE;
 
+      DECLARE
+        v_block text = null;
+      BEGIN
+        SELECT f.block
+          FROM pgctpl_body_filler f
+          WHERE f.code = v_template.code
+            AND v_body->(f.block) NOTNULL
+          LIMIT 1
+          INTO v_block;
+        --
+        IF found THEN
+          RAISE 'Duplicate template <%> body block <%> definition in '
+            '"pgctpl_body_filler" and in function footer',
+            v_template.code, v_block;
+        END IF;
+      END;
+
+      DECLARE
+        v_block text;
+        v_value text;
+      BEGIN
+        FOR v_block, v_value IN
+          SELECT block, value
+            FROM pgctpl_body_filler f
+            WHERE f.code = v_template.code
+        LOOP
+          IF NOT v_body ? v_block THEN
+            RAISE 'Missing block <%> definition in template <%>', v_block, v_template.code;
+          END IF;
+
+          v_body = v_body || hstore(v_block, v_value);
+
+          IF v_template.code = 'STHT' THEN
+            /* RAISE '! %', v_value; */
+          END IF;
+        END LOOP;
+      END;
+
       RETURN QUERY
         SELECT
-          v_template.code::varchar(4),
+          v_template.code,
           v_template.value->>'name',
           v_template.value->>'descr',
           v_body,

@@ -2,10 +2,14 @@
 --------------------------------------------------------------------------------
 CREATE TABLE pgctpl.template_type (
   nm text NOT NULL,
-  handler_func text,                           -- handler function
-  placeholders text[] NOT NULL DEFAULT '{}',   -- допустимые плейсхолдеры (может hstore с описанием??)
-                                               -- будут передаваться из пользовательской функции типа sys.service_placeholders()
+  handler_func text,
+  placeholders text[] NOT NULL DEFAULT '{}',   -- допустимые плейсхолдеры
                                                -- они нужны для валидации шаблона на этапе добавления
+  placeholder_prefix text NOT NULL,
+  placeholder_suffix text NOT NULL,
+  var_prefix text NOT NULL,
+  var_suffix text NOT NULL,
+  global_vars hstore NOT NULL,
   mo timestamp with time zone NOT NULL,
 	CONSTRAINT template_type_pkey PRIMARY KEY (nm)
 );
