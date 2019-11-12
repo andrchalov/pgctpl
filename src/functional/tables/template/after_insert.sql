@@ -1,17 +1,16 @@
 
 -------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION pgctpl.template_type_after_constr()
+CREATE OR REPLACE FUNCTION pgctpl.template_after_insert()
   RETURNS trigger
   LANGUAGE plpgsql
 AS $function$
+DECLARE
+  v_validation_error text;
 BEGIN
-  IF EXISTS(
-    SELECT
-      FROM pgctpl.template_type
-      WHERE mo <> now()
-      LIMIT 1
-  ) THEN
-    RAISE 'PGCTPL: All template types should be added only in one transaction!';
+  v_validation_error = pgctpl.validate(NEW);
+
+  IF v_validation_error NOTNULL THEN
+    RAISE 'PGCTPL: % in template `%`', v_validation_error, NEW.code;
   END IF;
 
   RETURN NEW;

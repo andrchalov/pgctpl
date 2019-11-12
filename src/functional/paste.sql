@@ -15,7 +15,7 @@ BEGIN
   v_result = (pgctpl.blocks(a_code, a_context, a_vars))->a_block;
 
   IF v_result ISNULL THEN
-    RAISE 'PGCTPL: block % not specified in template %', a_block, a_code;
+    RAISE 'PGCTPL: block `%` not specified in template %', a_block, a_code;
   END IF;
 
   RETURN v_result;

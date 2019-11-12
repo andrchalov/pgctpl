@@ -1,6 +1,6 @@
 
 --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION pgctpl.parse_function_header(
+CREATE OR REPLACE FUNCTION pgctpl._parse_function_header(
   IN a_src text,
   OUT title text
 )

@@ -1,6 +1,6 @@
 
 --------------------------------------------------------------------------------
-CREATE FUNCTION pgctpl.find_placeholders(txt_ text, prefix_ text, suffix_ text)
+CREATE FUNCTION pgctpl._find_placeholders(txt_ text, prefix_ text, suffix_ text)
  RETURNS text[]
  LANGUAGE sql
  STRICT

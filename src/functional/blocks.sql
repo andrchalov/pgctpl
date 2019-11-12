@@ -45,8 +45,8 @@ BEGIN
 
   -- поиск типа шаблона
   SELECT *
-    FROM pgctpl.template_type
-    WHERE nm = v_template.template_type
+    FROM pgctpl.type
+    WHERE nm = v_template.type
     INTO STRICT v_template_type;
 
   IF a_custom_data ISNULL THEN
@@ -91,14 +91,13 @@ BEGIN
 		RAISE 'PGCTPL: bug in pgctpl.blocks()';
 	END IF;
 
-  IF v_template_type.handler_func NOTNULL THEN
-    EXECUTE format(
-      $$
-        SELECT data, placeholders
-          FROM pgctpl.%I(%L,%L,%L);
-      $$, v_template_type.handler_func, v_code, v_data, a_context)
-    INTO v_data, v_placeholders;
-  END IF;
+  EXECUTE format(
+    $$
+      SELECT placeholders
+        FROM %I.%I(%L);
+    $$,
+    v_template_type.handler_nspname, v_template_type.handler_proname, a_context
+  ) INTO v_placeholders;
 
   -- в результирующий v_data добавим значения по-умолчанию для
   -- непереопределенных блоков
@@ -110,8 +109,8 @@ BEGIN
   SELECT hstore(
       array_agg(key),
       array_agg(
-        pgctpl.embed_placeholders(
-          pgctpl.embed_placeholders(value, a_vars, v_template_type.var_prefix, v_template_type.var_suffix),
+        pgctpl._embed_placeholders(
+          pgctpl._embed_placeholders(value, a_vars, v_template_type.var_prefix, v_template_type.var_suffix),
           v_placeholders,
           v_template_type.placeholder_prefix, v_template_type.placeholder_suffix
         )

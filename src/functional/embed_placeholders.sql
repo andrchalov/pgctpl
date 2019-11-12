@@ -1,6 +1,6 @@
 
 --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION pgctpl.embed_placeholders(
+CREATE OR REPLACE FUNCTION pgctpl._embed_placeholders(
   a_text text,
 	a_data hstore,
 	a_prefix text,

@@ -1,6 +1,6 @@
 
 -------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION pgctpl.parse_function(text)
+CREATE OR REPLACE FUNCTION pgctpl._parse_function(text)
   RETURNS TABLE (
     code varchar(4),
     name text,
@@ -19,14 +19,14 @@ DECLARE
   v_vars hstore;
   v_body hstore;
 BEGIN
-  v_footer = pgctpl.parse_function_footer($1);
+  v_footer = pgctpl._parse_function_footer($1);
 
   IF v_footer NOTNULL THEN
     FOR v_template IN
       SELECT key::varchar(4) AS code, value FROM jsonb_each(v_footer)
     LOOP
       SELECT nm
-        FROM pgctpl.template_type
+        FROM pgctpl.type
         WHERE nm = COALESCE(v_template.value->>'type', 'default')
         INTO v_template_type_nm;
       --
@@ -114,16 +114,16 @@ BEGIN
       DECLARE
         v_block text = null;
       BEGIN
-        SELECT f.block
-          FROM pgctpl_body_filler f
-          WHERE f.code = v_template.code
-            AND v_body->(f.block) NOTNULL
+        SELECT bb.block
+          FROM _pgctpl.bigbody bb
+          WHERE bb.code = v_template.code
+            AND v_body->(bb.block) NOTNULL
           LIMIT 1
           INTO v_block;
         --
         IF found THEN
           RAISE 'Duplicate template <%> body block <%> definition in '
-            '"pgctpl_body_filler" and in function footer',
+            '"_pgctpl.bigbody" and in function footer',
             v_template.code, v_block;
         END IF;
       END;
@@ -133,19 +133,15 @@ BEGIN
         v_value text;
       BEGIN
         FOR v_block, v_value IN
-          SELECT block, value
-            FROM pgctpl_body_filler f
-            WHERE f.code = v_template.code
+          SELECT bb.block, bb.value
+            FROM _pgctpl.bigbody bb
+            WHERE bb.code = v_template.code
         LOOP
           IF NOT v_body ? v_block THEN
             RAISE 'Missing block <%> definition in template <%>', v_block, v_template.code;
           END IF;
 
           v_body = v_body || hstore(v_block, v_value);
-
-          IF v_template.code = 'STHT' THEN
-            /* RAISE '! %', v_value; */
-          END IF;
         END LOOP;
       END;
 

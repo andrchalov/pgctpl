@@ -1,6 +1,6 @@
 
 --------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION pgctpl.parse_function_footer(a_src text)
+CREATE OR REPLACE FUNCTION pgctpl._parse_function_footer(a_src text)
   RETURNS jsonb
   LANGUAGE plpgsql
 AS $$
