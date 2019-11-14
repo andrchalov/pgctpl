@@ -1,0 +1,46 @@
+---
+kind: pipeline
+name: on commit
+
+steps:
+  - name: Check that version file has been updated
+    image: curlimages/curl
+    commands:
+      - sh auto_create_tag.sh
+    environment:
+      GITHUB_API_KEY:
+        from_secret: GITHUB_API_KEY
+trigger:
+  event:
+  - push
+  branch:
+  - master
+
+---
+kind: pipeline
+name: on tag
+steps:
+  - name: publish release
+    image: plugins/github-release
+    settings:
+      api_key:
+        from_secret: GITHUB_API_KEY
+  - name: send telegram notification
+    image: appleboy/drone-telegram
+    settings:
+      message: >
+        {{#success build.status}}
+          `${DRONE_REPO}`: version *${DRONE_TAG}* successfully released [info]({{build.link}})
+        {{else}}
+          `${DRONE_REPO}`: failed to release version *${DRONE_TAG}* [info]({{build.link}})
+        {{/success}}
+      token:
+        from_secret: TELEGRAM_TOKEN
+      to:
+        from_secret: TELEGRAM_CLIENT
+      format: markdown
+    when:
+      status: [ success, failure ]
+trigger:
+  event:
+  - tag
